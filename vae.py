@@ -170,3 +170,68 @@ def vae_loss_function(recon_x, x, mu, logvar, beta=1.0):
     return BCE + beta * KLD, BCE, KLD
 
 
+learning_rate = 0.1
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+vae = VAE(latent_dim).to(device)
+optimizer = torch.optim.Adam(vae.parameters(), lr=learning_rate)
+
+num_vae_epochs = 10
+
+print("Training VAE...")
+for epoch in range(num_vae_epochs):
+    vae.train()
+    total_loss = 0
+    total_bce = 0
+    total_kld = 0
+
+    for batch_idx, (images, _) in enumerate(train_loader):
+        images = images.to(device)
+
+        # Forward pass
+        recon_images, mu, logvar = vae(images)
+
+        # Calculate loss
+        loss, bce, kld = vae_loss_function(recon_images, images, mu, logvar, beta)
+
+        # Backward pass
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        total_loss += loss.item()
+        total_bce += bce.item()
+        total_kld += kld.item()
+
+    avg_loss = total_loss / len(train_loader.dataset)
+    avg_bce = total_bce / len(train_loader.dataset)
+    avg_kld = total_kld / len(train_loader.dataset)
+
+    print(f'VAE Epoch [{epoch + 1}/{num_vae_epochs}], Loss: {avg_loss:.4f}, BCE: {avg_bce:.4f}, KLD: {avg_kld:.4f}')
+
+    # Visualize reconstructions every few epochs
+    if (epoch + 1) % 1 == 0 or epoch == 0:
+        vae.eval()
+        with torch.no_grad():
+            test_images, _ = next(iter(test_loader))
+            test_images = test_images.to(device)
+            recon_images, _, _ = vae(test_images)
+
+            # Plot original vs reconstructed
+            fig, axes = plt.subplots(2, 10, figsize=(20, 4))
+            for i in range(10):
+                # Original
+                axes[0, i].imshow(test_images[i].cpu().squeeze(), cmap='gray')
+                axes[0, i].axis('off')
+                if i == 0:
+                    axes[0, i].set_ylabel('Original', fontsize=12)
+
+                # Reconstructed
+                axes[1, i].imshow(recon_images[i].cpu().squeeze(), cmap='gray')
+                axes[1, i].axis('off')
+                if i == 0:
+                    axes[1, i].set_ylabel('Reconstructed', fontsize=12)
+
+            plt.suptitle(f'VAE Reconstructions - Epoch {epoch + 1}', fontsize=14)
+            plt.tight_layout()
+            plt.show()
