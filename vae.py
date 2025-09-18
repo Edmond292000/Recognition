@@ -170,7 +170,7 @@ def vae_loss_function(recon_x, x, mu, logvar, beta=1.0):
     return BCE + beta * KLD, BCE, KLD
 
 
-learning_rate = 0.1
+learning_rate = 5e-4
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 vae = VAE(latent_dim).to(device)
