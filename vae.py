@@ -131,4 +131,14 @@ class Decoder(nn.Module):
         return z
 
 
+class VAE(nn.Module):
+    def __init__(self, latent_dim):
+        super(VAE, self).__init__()
+        self.encoder = Encoder(latent_dim)
+        self.decoder = Decoder(latent_dim)
 
+    def forward(self, x):
+        mu, logvar = self.encoder(x)
+        z = self.encoder.reparameterize(mu, logvar)
+        recon_x = self.decoder(z)
+        return recon_x, mu, logvar
