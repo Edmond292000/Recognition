@@ -10,6 +10,8 @@ from torch.utils.data import DataLoader
 import time
 import matplotlib.pyplot as plt
 
+
+
 # hyperparameter
 latent_dim = 256
 
@@ -142,3 +144,20 @@ class VAE(nn.Module):
         z = self.encoder.reparameterize(mu, logvar)
         recon_x = self.decoder(z)
         return recon_x, mu, logvar
+
+
+def vae_loss_function(recon_x, x, mu, logvar, beta=1.0):
+    """
+    VAE loss = Reconstruction loss + KL divergence
+    beta: weight for KL divergence (beta-VAE)
+    """
+    # Reconstruction loss (Binary Cross Entropy)
+    BCE = nn.functional.binary_cross_entropy(recon_x, x, reduction='sum')
+
+    # KL divergence loss
+    # KLD = -0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
+    KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+
+    return BCE + beta * KLD, BCE, KLD
+
+
