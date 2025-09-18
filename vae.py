@@ -89,4 +89,46 @@ class Encoder(nn.Module):
         return mu + std * eps
 
 
+class Decoder(nn.Module):
+    def __init__(self, latent_dim):
+        super(Decoder, self).__init__()
+
+        self.fc1 = nn.Linear(latent_dim, 4096)
+        self.bn1 = nn.BatchNorm1d(4096)
+        self.fc2 = nn.Linear(4096, 256 * 11 * 11)
+        self.bn2 = nn.BatchNorm1d(256 * 11 * 11)
+
+        self.deconv1 = nn.ConvTranspose2d(256, 256, kernel_size=3, stride=1)
+        self.bn3 = nn.BatchNorm2d(256)
+
+        self.unpool1 = nn.Upsample(scale_factor=2, mode="nearest")
+
+        self.deconv2 = nn.ConvTranspose2d(256, 192, kernel_size=3, stride=1)
+        self.bn4 = nn.BatchNorm2d(192)
+
+        self.unpool2 = nn.Upsample(scale_factor=2, mode="nearest")
+
+        self.deconv3 = nn.ConvTranspose2d(192, 128, kernel_size=3, stride=1)
+        self.bn5 = nn.BatchNorm2d(128)
+
+        self.deconv4 = nn.ConvTranspose2d(128, 1, kernel_size=5, stride=1)
+
+    def forward(self, z):
+        z = F.relu(self.bn1(self.fc1(z)))
+        z = F.relu(self.bn2(self.fc2(z)))
+
+        z = z.view(-1, 256, 11, 11)
+
+        z = F.relu(self.bn3(self.deconv1(z)))
+        z = self.unpool1(z)
+
+        z = F.relu(self.bn4(self.deconv2(z)))
+        z = self.unpool2(z)
+
+        z = F.relu(self.bn5(self.deconv3(z)))
+        z = torch.sigmoid(self.deconv4(z))
+
+        return z
+
+
 
